@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
-<<<<<<< HEAD
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-=======
-    <mapping directory="" vcs="Git" />
->>>>>>> 58127f78d3e20bb9cbd1d39619affe854ed39308
+    <mapping directory="$PROJECT_DIR$/GlovoFinal" vcs="Git" />
   </component>
 </project>
