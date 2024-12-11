@@ -8,6 +8,7 @@ GENDER = (
         ('OTHER', 'OTHER'),
     )
 
+
 class User(AbstractUser):
     pass
 
@@ -19,6 +20,7 @@ class Teacher(User):
     bio = models.TextField()
     data_birth = models.DateField()
     education = models.CharField(max_length=100)
+    position = models.CharField(max_length=100)
     work_experience = models.PositiveSmallIntegerField()
     phone_number = PhoneNumberField(null=True, blank=True)
     role = models.CharField(max_length=15, choices=[('teacher', 'teacher')], default='teacher')
@@ -26,6 +28,18 @@ class Teacher(User):
 
     def __str__(self):
         return f'{self.first_name} - {self.last_name}'
+
+    def get_count_teacher_rating(self):
+        ratings = self.teacher_rating.all()
+        if ratings.exists():
+            return ratings.count()
+        return 0
+
+    def get_count_review(self):
+        count = self.created_by.all()
+        if count.exists():
+            return count.count()
+        return 0
 
 
 class Student(User):
@@ -64,7 +78,6 @@ class Course(models.Model):
 
     def __str__(self):
         return self.course_name
-
 
     def get_discount_price(self):
          if self.discount is None:
@@ -134,13 +147,15 @@ class Certificate(models.Model):
 
 
 class Review(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_review')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_review')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='student_review')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, related_name='course_review')
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, blank=True, null=True, related_name='teacher_rating')
+    date = models.DateField(auto_now_add=True)
     rating = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
-    comment = models.TextField()
+    comment = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f'{self.user}-{self.rating}'
+        return f'{self.student}-{self.rating}'
 
 
 class Exam(models.Model):
@@ -173,10 +188,17 @@ class Choice(models.Model):  # Ответ
 class UserAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     choice = models.ForeignKey(Choice, on_delete=models.CASCADE)  # Выбранный пользователем ответ
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     is_correct = models.BooleanField(default=False)  # Результат проверки (правильно/неправильно)
 
     def __str__(self):
-        return f"{self.user} - {self.question.text}: {self.choice.text} ({'Correct' if self.is_correct else 'Wrong'})"
+        return f"{self.student} - {self.question.text}: {self.choice.text} ({'Correct' if self.is_correct else 'Wrong'})"
 
 
+class Favorite(models.Model): #Избранный
+    owner = models.OneToOneField(Student, on_delete=models.CASCADE)
+
+
+class FavoriteItem(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course')
+    favorite = models.ForeignKey(Favorite, on_delete=models.CASCADE, related_name='favorite')
