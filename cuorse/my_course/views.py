@@ -1,8 +1,13 @@
+from django.db.models import Avg
 from rest_framework import viewsets, status, generics
-from .models import Question, UserAnswer, Choice, Exam, Course, User, Student
+from rest_framework.filters import OrderingFilter, SearchFilter
+
+from .models import Question, UserAnswer, Choice, Exam, Course, User, Student, Cart, Certificate, Assignment, \
+    FavoriteItem, Favorite, CartItem
 from .serializers import (QuestionSerializer, UserAnswerSerializer, ExamListSerializers,
                           ExamDetailSerializers, CourseListSerializers, CourseDetailSerializers, FavoriteSerializers,
-                          FavoriteItemSerializers)
+                          FavoriteItemSerializers, CourseCreateSerializers, CartItemSerializers, CartSerializers,
+                          CertificateCreateListSerializers, AssignmentListCreate)
 from rest_framework.response import Response
 
 
@@ -64,9 +69,17 @@ class ExamDetailAPIView(generics.RetrieveAPIView):
     serializer_class = ExamDetailSerializers
 
 
+class CourseCreateAPIView(generics.CreateAPIView):
+    serializer_class = CourseCreateSerializers
+
+
 class CourseListAPIView(generics.ListAPIView):
-    queryset = Course.objects.all()
+    queryset = Course.objects.annotate(avg_rating=Avg('course_review__rating'))  # Добавляем аннотацию для среднего рейтинга
     serializer_class = CourseListSerializers
+    filter_backends = [OrderingFilter, SearchFilter]
+    ordering_fields = ['avg_rating']  # Поля для сортировки
+    ordering = ['-avg_rating']  # Сортировка по убыванию популярности (по умолчанию)
+    search_fields = ['course_name']
 
 
 class CourseDetailAPIView(generics.RetrieveAPIView):
@@ -74,23 +87,65 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     serializer_class = CourseDetailSerializers
 
 
+class CertificateCreateListAPIView(generics.ListCreateAPIView):
+    queryset = Certificate.objects.all()
+    serializer_class = CertificateCreateListSerializers
+
+
+class CertificateDeleteUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Certificate.objects.all()
+    serializer_class = CertificateCreateListSerializers
+
+
+class AssignmentCreateListAPIView(generics.ListCreateAPIView):
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentListCreate
+
+
+class AssignmentDeleteUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Certificate.objects.all()
+    serializer_class = CertificateCreateListSerializers
+
+
 class FavoriteListAPIView(generics.ListAPIView):
     serializer_class = FavoriteSerializers
 
     def get_queryset(self):
-        return Course.objects.filter(user=self.request.user)
+        return Favorite.objects.filter(owner=self.request.user)
 
 
 class FavoriteItemListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = FavoriteItemSerializers
 
     def get_queryset(self):
-        return Course.objects.filter(favorite__user=self.request.user)
+        return FavoriteItem.objects.filter(favorite__owner=self.request.user)
 
 
 class FavoriteItemDeleteUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = FavoriteItemSerializers
 
     def get_queryset(self):
-        return Course.objects.filter(favorite__user=self.request.user)
+        return FavoriteItem.objects.filter(favorite__owner=self.request.user)
+
+
+class CartListAPIView(generics.ListAPIView):
+    serializer_class = CartSerializers
+
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user)
+
+
+class CartItemListCreateAPIView(generics.ListCreateAPIView):
+    serializer_class = CartItemSerializers
+
+    def get_queryset(self):
+        return CartItem.objects.filter(cart__user=self.request.user)
+
+
+class CartItemDeleteUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CartItemSerializers
+
+    def get_queryset(self):
+        return CartItem.objects.filter(cart__user=self.request.user)
+
 

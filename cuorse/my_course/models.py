@@ -201,3 +201,20 @@ class Favorite(models.Model): #Избранный
 class FavoriteItem(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course')
     favorite = models.ForeignKey(Favorite, on_delete=models.CASCADE, related_name='favorite')
+
+
+class Cart(models.Model):
+    user = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='cart')
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user}'
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    quantity = models.PositiveSmallIntegerField(default=1)
+
+    def get_total_price(self):
+        return self.course.price * self.quantity

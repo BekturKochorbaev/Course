@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Question, Choice, UserAnswer, User, Course, Exam, Lesson, LessonVideo, LessonFile, Teacher, Review, \
-    Student, Favorite, FavoriteItem, Assignment, Certificate, Category
+    Student, Favorite, FavoriteItem, Assignment, Certificate, Category, Cart, CartItem
 
 
 class TeacherSerializers(serializers.ModelSerializer):
@@ -8,61 +8,8 @@ class TeacherSerializers(serializers.ModelSerializer):
     count_review = serializers.SerializerMethodField()
 
     class Meta:
-
-        model = User
-        fields = '__all__'
-
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = '__all__'
-
-
-class CourseSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = '__all__'
-
-
-class LessonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Lesson
-        fields = '__all__'
-
-
-class AssignmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Assignment
-        fields = '__all__'
-
-
-class QuestionsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Question
-        fields = '__all__'
-
-
-class ExamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Exam
-        fields = '__all__'
-
-
-class CertificateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Certificate
-        fields = '__all__'
-
-
-class ReviewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Review
-        fields = '__all__'
-
         model = Teacher
-        fields = ['first_name', 'last_name', 'profile_picture',
-                  'position', 'bio', 'count_teacher_rating', 'count_review']
+        fields = ['first_name', 'profile_picture', 'last_name', 'position', 'bio', 'count_teacher_rating', 'count_review']
 
     def get_count_teacher_rating(self, obj):
             return obj.get_count_teacher_rating()
@@ -171,16 +118,39 @@ class ReviewSerializers(serializers.ModelSerializer):
         fields = ['student', 'date', 'rating', 'comment']
 
 
+class PopularCourseSerializer(serializers.ModelSerializer):
+    avg_rating = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = ['course_name', 'avg_rating']
+
+    def get_avg_rating(self, obj):
+        return obj.get_avg_rating()
+
+    @staticmethod
+    def get_popular_courses():
+        # Получаем курсы с рейтингом >= 3
+        return Course.objects.filter(
+            course_review__rating__gte=3
+        ).distinct()
+
+class CourseCreateSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ['course_name', 'description', 'category', 'LEVEL', 'price', 'discount', 'updated_at', 'language']
+
 class CourseListSerializers(serializers.ModelSerializer):
     avg_rating = serializers.SerializerMethodField()
     count_rating = serializers.SerializerMethodField()
     created_by = TeacherSerializers(read_only=True)
     discount_price = serializers.SerializerMethodField()
+    popular_courses = serializers.SerializerMethodField()  # Новое поле для популярных курсов
 
     class Meta:
         model = Course
         fields = ['course_name', 'created_by', 'price', 'avg_rating',
-                  'count_rating', 'discount_price']
+                  'count_rating', 'discount_price', 'popular_courses']
 
     def get_avg_rating(self, obj):
         return obj.get_avg_rating()
@@ -190,6 +160,12 @@ class CourseListSerializers(serializers.ModelSerializer):
 
     def get_discount_price(self, obj):
         return obj.get_discount_price()
+
+    def get_popular_courses(self, obj):
+        # Получаем популярные курсы через PopularCourseSerializer
+        popular_courses = PopularCourseSerializer.get_popular_courses()
+        serializer = PopularCourseSerializer(popular_courses, many=True)
+        return serializer.data
 
 
 class CourseDetailSerializers(serializers.ModelSerializer):
@@ -220,13 +196,39 @@ class FavoriteItemSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = FavoriteItem
-        fields = ['course', ' favorite_id']
+        fields = ['course', 'favorite_id']
 
 
 class FavoriteSerializers(serializers.ModelSerializer):
     favorite = FavoriteItemSerializers(read_only=True, many=True)
     class Meta:
         model = Favorite
-        fields = ['owner',]
+        fields = ['owner', 'favorite']
 
 
+class CartItemSerializers(serializers.ModelSerializer):
+    course = CourseListSerializers(read_only=True)
+    cart_id = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), write_only=True, source='course')
+
+    class Meta:
+        model = CartItem
+        fields = ['course', 'cart_id']
+
+
+class CartSerializers(serializers.ModelSerializer):
+    items = CartItemSerializers(read_only=True)
+    class Meta:
+        model = Cart
+        fields = ['user', 'items']
+
+
+class CertificateCreateListSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Certificate
+        fields = ['student', 'course', 'issued_at', 'certificate_url']
+
+
+class AssignmentListCreate(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = ['title', 'description', 'due_date', 'course', 'students']
