@@ -10,21 +10,20 @@ GENDER = (
 
 
 class User(AbstractUser):
-    pass
+    gender = models.CharField(max_length=10, choices=GENDER)
+    address = models.CharField(max_length=54)
+    age = models.PositiveIntegerField(null=True, blank=True)
+    bio = models.TextField()
+    data_birth = models.DateField(null=True, blank=True)
+    phone_number = PhoneNumberField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures', null=True, blank=True)
 
 
 class Teacher(User):
-    address = models.CharField(max_length=54)
-    gender = models.CharField(max_length=10, choices=GENDER)
-    age = models.PositiveIntegerField()
-    bio = models.TextField()
-    data_birth = models.DateField()
     education = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
-    work_experience = models.PositiveSmallIntegerField()
-    phone_number = PhoneNumberField(null=True, blank=True)
+    work_experience = models.PositiveSmallIntegerField(null=True, blank=True)
     role = models.CharField(max_length=15, choices=[('teacher', 'teacher')], default='teacher')
-    profile_picture = models.ImageField(upload_to='teacher_profile_picture', null=True, blank=True)
 
     def __str__(self):
         return f'{self.first_name} - {self.last_name}'
@@ -43,13 +42,13 @@ class Teacher(User):
 
 
 class Student(User):
-    gender = models.CharField(max_length=10, choices=GENDER)
-    age = models.PositiveIntegerField()
-    phone_number = PhoneNumberField(null=True, blank=True)
-    data_birth = models.DateField()
     role = models.CharField(max_length=15, choices=[('student', 'student')], default='student')
-    profile_picture = models.ImageField(upload_to='student_profile_picture', null=True, blank=True)
-    bio = models.TextField()
+    headline = models.CharField(max_length=60)
+    Facebook = models.URLField(null=True, blank=True)
+    Linkedin = models.URLField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.first_name} - {self.last_name}'
 
 
 class Category(models.Model):
@@ -73,7 +72,7 @@ class Course(models.Model):
     discount = models.PositiveSmallIntegerField(default=0, null=True, blank=True)
     created_by = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='created_by')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateField()
+    updated_at = models.DateField(auto_now=True)
     language = models.CharField(max_length=24)
 
     def __str__(self):
@@ -218,3 +217,4 @@ class CartItem(models.Model):
 
     def get_total_price(self):
         return self.course.price * self.quantity
+

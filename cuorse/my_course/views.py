@@ -1,14 +1,80 @@
 from django.db.models import Avg
 from rest_framework import viewsets, status, generics
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Question, UserAnswer, Choice, Exam, Course, User, Student, Cart, Certificate, Assignment, \
-    FavoriteItem, Favorite, CartItem
+    FavoriteItem, Favorite, CartItem, Teacher
+from .permissions import CheckOwner
 from .serializers import (QuestionSerializer, UserAnswerSerializer, ExamListSerializers,
                           ExamDetailSerializers, CourseListSerializers, CourseDetailSerializers, FavoriteSerializers,
                           FavoriteItemSerializers, CourseCreateSerializers, CartItemSerializers, CartSerializers,
-                          CertificateCreateListSerializers, AssignmentListCreate)
+                          CertificateCreateListSerializers, AssignmentListCreate, TeacherLoginSerializer,
+                          TeacherFormSerializer, StudentLoginSerializer, StudentFormSerializer,
+                          StudentProfileSerializers)
 from rest_framework.response import Response
+
+
+class BaseRegisterView(generics.CreateAPIView):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# Teacher Register View
+class TeacherRegisterView(BaseRegisterView):
+    serializer_class = TeacherFormSerializer
+
+
+# Student Register View
+class StudentRegisterView(BaseRegisterView):
+    serializer_class = StudentFormSerializer
+
+
+# Base Custom Login View
+class BaseCustomLoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# Teacher Login View
+class TeacherCustomLoginView(BaseCustomLoginView):
+    serializer_class = TeacherLoginSerializer
+
+
+# Student Login View
+class StudentCustomLoginView(BaseCustomLoginView):
+    serializer_class = StudentLoginSerializer
+
+
+# Base Logout View
+class BaseLogoutView(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            refresh_token = request.data['refresh']
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+# Teacher Logout View
+class TeacherLogoutView(BaseLogoutView):
+    pass
+
+
+# Student Logout View
+class StudentLogoutView(BaseLogoutView):
+    pass
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -71,6 +137,7 @@ class ExamDetailAPIView(generics.RetrieveAPIView):
 
 class CourseCreateAPIView(generics.CreateAPIView):
     serializer_class = CourseCreateSerializers
+    permission_classes = [CheckOwner]
 
 
 class CourseListAPIView(generics.ListAPIView):
@@ -85,6 +152,7 @@ class CourseListAPIView(generics.ListAPIView):
 class CourseDetailAPIView(generics.RetrieveAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseDetailSerializers
+    permission_classes = [CheckOwner]
 
 
 class CertificateCreateListAPIView(generics.ListCreateAPIView):
@@ -148,4 +216,12 @@ class CartItemDeleteUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return CartItem.objects.filter(cart__user=self.request.user)
 
+
+class StudentProfileCreateAPIView(generics.CreateAPIView):
+    serializer_class = StudentProfileSerializers
+
+
+class StudentProfileListAPIView(generics.ListAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentProfileSerializers
 

@@ -3,9 +3,19 @@ from .views import UserAnswerListCreateView, ExamListAPIView, ExamDetailAPIView,
     CourseDetailAPIView, FavoriteListAPIView, FavoriteItemListCreateAPIView, FavoriteItemDeleteUpdateDestroyAPIView, \
     CourseCreateAPIView, CartListAPIView, CartItemListCreateAPIView, CartItemDeleteUpdateDestroyAPIView, \
     CertificateCreateListAPIView, CertificateDeleteUpdateDestroyAPIView, AssignmentCreateListAPIView, \
-    AssignmentDeleteUpdateDestroyAPIView
+    AssignmentDeleteUpdateDestroyAPIView, TeacherRegisterView, TeacherCustomLoginView, TeacherLogoutView, \
+    StudentRegisterView, StudentCustomLoginView, StudentLogoutView, StudentProfileCreateAPIView, \
+    StudentProfileListAPIView
 
 urlpatterns = [
+    path('register_teacher/', TeacherRegisterView.as_view(), name='register'),
+    path('login_teacher/', TeacherCustomLoginView.as_view(), name='login'),
+    path('logout_teacher/', TeacherLogoutView.as_view(), name='logout'),
+
+    path('register_student/', StudentRegisterView.as_view(), name='register'),
+    path('login_student/', StudentCustomLoginView.as_view(), name='login'),
+    path('logout_student/', StudentLogoutView.as_view(), name='logout'),
+
     path('user-answers/', UserAnswerListCreateView.as_view(), name='user-answer-list-create'),
 
     path('exam/', ExamListAPIView.as_view(), name='exam-list'),
@@ -30,6 +40,9 @@ urlpatterns = [
 
     path('assignment_list/', AssignmentCreateListAPIView.as_view(), name='certificate_list'),
     path('assignment_list/<int:pk>/', AssignmentDeleteUpdateDestroyAPIView.as_view(), name='certificate_delete_update'),
+
+    path('profile/', StudentProfileCreateAPIView.as_view(), name='profile'),
+    path('profile_list/', StudentProfileListAPIView.as_view(), name='profile_list'),
 
 ]
 

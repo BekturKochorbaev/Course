@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -45,6 +46,8 @@ INSTALLED_APPS = [
     "phonenumber_field",
     'rest_framework_swagger',       # Swagger
     'drf_yasg',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +110,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -142,3 +150,11 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'my_course.User'
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=57),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}

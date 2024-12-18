@@ -1,6 +1,77 @@
+from django.contrib.auth import authenticate
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Question, Choice, UserAnswer, User, Course, Exam, Lesson, LessonVideo, LessonFile, Teacher, Review, \
     Student, Favorite, FavoriteItem, Assignment, Certificate, Category, Cart, CartItem
+
+
+# Base User Serializer
+class BaseUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ('username', 'first_name', 'last_name', 'password')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def to_representation(self, instance):
+        refresh = RefreshToken.for_user(instance)
+        return {
+            'user': {
+                'username': instance.username,
+                'email': instance.email,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+
+
+# Teacher Serializer
+class TeacherFormSerializer(BaseUserSerializer):
+    class Meta(BaseUserSerializer.Meta):
+        model = Teacher
+
+    def create(self, validated_data):
+        return Teacher.objects.create_user(**validated_data)
+
+
+# Student Serializer
+class StudentFormSerializer(BaseUserSerializer):
+    class Meta(BaseUserSerializer.Meta):
+        model = Student
+
+    def create(self, validated_data):
+        return Student.objects.create_user(**validated_data)
+
+
+# Base Login Serializer
+class BaseLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        user = authenticate(**data)
+        if user and user.is_active:
+            return user
+        raise serializers.ValidationError('Invalid credentials')
+
+    def to_representation(self, instance):
+        refresh = RefreshToken.for_user(instance)
+        return {
+            'user': {
+                'username': instance.username,
+                'email': instance.email,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+
+
+# Teacher Login Serializer
+class TeacherLoginSerializer(BaseLoginSerializer):
+    pass
+
+
+# Student Login Serializer
+class StudentLoginSerializer(BaseLoginSerializer):
+    pass
 
 
 class TeacherSerializers(serializers.ModelSerializer):
@@ -135,10 +206,12 @@ class PopularCourseSerializer(serializers.ModelSerializer):
             course_review__rating__gte=3
         ).distinct()
 
+
 class CourseCreateSerializers(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = ['course_name', 'description', 'category', 'LEVEL', 'price', 'discount', 'updated_at', 'language']
+
 
 class CourseListSerializers(serializers.ModelSerializer):
     avg_rating = serializers.SerializerMethodField()
@@ -188,11 +261,9 @@ class CourseDetailSerializers(serializers.ModelSerializer):
         return obj.get_count_rating()
 
 
-
 class FavoriteItemSerializers(serializers.ModelSerializer):
     course = CourseListSerializers(read_only=True)
     favorite_id = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), write_only=True, source='course')
-
 
     class Meta:
         model = FavoriteItem
@@ -201,6 +272,7 @@ class FavoriteItemSerializers(serializers.ModelSerializer):
 
 class FavoriteSerializers(serializers.ModelSerializer):
     favorite = FavoriteItemSerializers(read_only=True, many=True)
+
     class Meta:
         model = Favorite
         fields = ['owner', 'favorite']
@@ -217,6 +289,7 @@ class CartItemSerializers(serializers.ModelSerializer):
 
 class CartSerializers(serializers.ModelSerializer):
     items = CartItemSerializers(read_only=True)
+
     class Meta:
         model = Cart
         fields = ['user', 'items']
@@ -232,3 +305,11 @@ class AssignmentListCreate(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = ['title', 'description', 'due_date', 'course', 'students']
+
+
+class StudentProfileSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ['first_name', 'last_name', 'headline', 'Facebook', 'Linkedin', 'profile_picture']
+
+
